@@ -18,7 +18,8 @@ ChartType = Literal['HeikinAshi', 'Renko', 'LineBreak', 'Kagi', 'PointAndFigure'
 
 # Chart type mappings
 CHART_TYPES = {
-    'HeikinAshi': 'BarSetHeikenAshi@tv-basicstudies-60!'
+    'HeikinAshi': 'BarSetHeikenAshi@tv-basicstudies-60!',
+    'Range': 'BarSetRange@tv-basicstudies-72!'
 }
 
 # Price period structure
