@@ -44,7 +44,7 @@ class TradingView:
         finally:
             session.unsubscribe()
 
-    async def get_historical_data(self, symbol: str, timeframe: str, n_bars: int) -> pd.DataFrame:
+    async def get_historical_data(self, symbol: str, timeframe: str, n_bars: int, chart_type: str = None, chart_inputs: Dict[str, Any] = None) -> pd.DataFrame:
         """
         Download historical data for a symbol and timeframe.
         """
@@ -57,9 +57,23 @@ class TradingView:
                 data_event.set()
 
         session.on_update(on_data)
-        session.subscribe(symbol, timeframe=timeframe, range_count=n_bars)
 
-        await data_event.wait()
+        options = {
+            'timeframe': timeframe,
+            'range': n_bars,
+        }
+        if chart_type:
+            options['type'] = chart_type
+            if chart_inputs:
+                options['inputs'] = chart_inputs
+
+        session.set_market(symbol, options)
+
+        try:
+            await asyncio.wait_for(data_event.wait(), timeout=10)
+        except asyncio.TimeoutError:
+            print("Timeout waiting for data")
+            return pd.DataFrame()
 
         df = pd.DataFrame(session.periods_list)
         df = df.sort_values(by='time').reset_index(drop=True)

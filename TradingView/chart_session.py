@@ -226,21 +226,11 @@ class ChartSession:
         
         # Initialize chart configuration
         if has_custom_type:
-            chart_init = {}
-            chart_init['symbol'] = symbol_init
-            
-            # Handle custom chart types
-            chart_init['type'] = CHART_TYPES.get(options['type'], options['type'])
-
-            # Always include inputs for custom chart types, even if empty
-            inputs = options.get('inputs', {})
-
-            # Special handling for 'Range' chart type
-            if options.get('type') == 'Range':
-                if 'range' not in inputs:
-                    inputs['range'] = options.get('range', 1) # Default range to 1 if not provided
-
-            chart_init['inputs'] = inputs
+            chart_init = {
+                'symbol': symbol_init,
+                'type': CHART_TYPES.get(options['type'], options['type']),
+                'inputs': options.get('inputs', {})
+            }
         else:
             # Simple chart - use symbol_init directly
             chart_init = symbol_init
