@@ -14,12 +14,11 @@ TimeFrame = Literal[
 MarketSymbol = str
 
 # Chart types
-ChartType = Literal['HeikinAshi', 'Renko', 'LineBreak', 'Kagi', 'PointAndFigure', 'Range']
+ChartType = Literal['Range']
 
 # Chart type mappings
 CHART_TYPES = {
-    'HeikinAshi': 'BarSetHeikenAshi@tv-basicstudies-60!',
-    'Range': 'BarSetRange@tv-basicstudies-72!'
+    'Range': 'BarSetRange@tv-basicstudies-72!',
 }
 
 # Price period structure
