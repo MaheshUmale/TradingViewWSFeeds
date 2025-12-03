@@ -1,6 +1,3 @@
-"""
-TradingView Client - Main WebSocket client for TradingView API
-"""
 
 import asyncio
 import json
@@ -18,7 +15,7 @@ class Client:
     Main TradingView client for WebSocket communication
     """
     
-    def __init__(self, debug: bool = False, server: str = "data"):
+    def __init__(self, debug: bool = False, server: str = "prodata"):
         """
         Initialize TradingView client
         
@@ -122,7 +119,8 @@ class Client:
             # Handle ping packets
             if isinstance(packet, int):
                 try:
-                    asyncio.create_task(self.websocket.send(Protocol.format_ws_packet(f"~h~{packet}")))
+                    self.send_queue.append(f"~h~{packet}")
+                    self._send_queue()
                     self._handle_event('ping', packet)
                 except Exception as e:
                     self.logger.error(f"Error sending ping response: {e}")
@@ -195,26 +193,13 @@ class Client:
         """Connect to TradingView WebSocket"""
         try:
             # Create WebSocket connection
-            uri = f"wss://{self.server}.tradingview.com/socket.io/websocket?type=chart"
+            uri = f"wss://{self.server}.tradingview.com/socket.io/websocket"
             
-            # Try different approaches for headers based on websockets version
-            try:
-                # Method 1: additional_headers (newer versions)
-                self.websocket = await websockets.connect(
-                    uri, 
-                    additional_headers=[('Origin', 'https://www.tradingview.com')]
-                )
-            except TypeError:
-                try:
-                    # Method 2: extra_headers (older versions)
-                    self.websocket = await websockets.connect(
-                        uri, 
-                        extra_headers={'Origin': 'https://www.tradingview.com'}
-                    )
-                except TypeError:
-                    # Method 3: No headers (fallback)
-                    self.websocket = await websockets.connect(uri)
-            
+            self.websocket = await websockets.connect(
+                uri,
+                extra_headers={'Origin': 'https://www.tradingview.com'}
+            )
+
             # Set connection state
             self.connected = True
             
@@ -289,4 +274,5 @@ class Client:
         @property
         def Chart(self):
             """Get Chart session class"""
-            from .chart_session import ChartSession 
+            from .chart_session import ChartSession
+            return ChartSession(self.client)
