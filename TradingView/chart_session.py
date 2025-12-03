@@ -1,6 +1,3 @@
-"""
-Chart Session - Handles chart-specific functionality for TradingView API
-"""
 
 import json
 import logging
@@ -90,12 +87,12 @@ class ChartSession:
             for key, value in data[1].items():
                 changes.append(key)
                 
-                if key == '$prices':
-                    periods = value
-                    if not periods or 's' not in periods:
+                if 's' in value:
+                    periods = value['s']
+                    if not periods:
                         continue
                     
-                    for period_data in periods['s']:
+                    for period_data in periods:
                         # period_data.v contains: [time, open, high, low, close, volume]
                         # Handle both dict and list formats
                         if isinstance(period_data, dict) and 'v' in period_data:
@@ -187,7 +184,7 @@ class ChartSession:
                 self.chart_session_id,
                 '$prices',
                 's1',
-                f"ser_{self.current_series}",
+                f"sds_sym_{self.current_series}",
                 timeframe,
                 '' if self.series_created else calc_range
             ]
@@ -208,40 +205,27 @@ class ChartSession:
         
         self.periods = {}
         
-        # Prepare symbol initialization
-        symbol_init = {
-            'symbol': symbol or 'BTCEUR',
-            'adjustment': options.get('adjustment', 'splits')
-        }
-        
-        if options.get('backadjustment'):
-            symbol_init['backadjustment'] = 'default'
-        if options.get('session'):
-            symbol_init['session'] = options['session']
-        if options.get('currency'):
-            symbol_init['currency-id'] = options['currency']
-        
         # Determine if we need complex chart handling (custom chart types)
         has_custom_type = options.get('type')
         
         # Initialize chart configuration
         if has_custom_type:
             chart_init = {
-                'symbol': symbol_init,
+                'symbol': symbol,
                 'type': CHART_TYPES.get(options['type'], options['type']),
                 'inputs': options.get('inputs', {})
             }
         else:
-            # Simple chart - use symbol_init directly
-            chart_init = symbol_init
-        
+            # Simple chart - use symbol directly
+            chart_init = f"={json.dumps({'symbol': symbol})}"
+
         self.current_series += 1
         
         # Resolve symbol with the prepared chart configuration
         self.client.send('resolve_symbol', [
             self.chart_session_id,
-            f"ser_{self.current_series}",
-            f"={json.dumps(chart_init)}"
+            f"sds_sym_{self.current_series}",
+            f"={json.dumps(chart_init)}" if has_custom_type else chart_init
         ])
         
         # Set series with proper range handling
@@ -250,24 +234,10 @@ class ChartSession:
             options.get('range', 100),  # Default to 100 candles
             options.get('to')
         )
-    
+
     def set_timezone(self, timezone: str) -> None:
         """Set chart timezone"""
-        self.client.send('set_timezone', [self.chart_session_id, timezone])
-    
-    def subscribe(self, symbol: str, timeframe: str = '240', range_count: int = 100) -> None:
-        """
-        Subscribe to a symbol (alias for set_market for compatibility)
-        
-        Args:
-            symbol: Market symbol (e.g., 'NASDAQ:AAPL')
-            timeframe: Chart timeframe (default: '240' for 4-hour)
-            range_count: Number of periods to load (default: 100)
-        """
-        self.set_market(symbol, {
-            'timeframe': timeframe,
-            'range': range_count
-        })
+        self.client.send('switch_timezone', [self.chart_session_id, timezone])
     
     def unsubscribe(self, symbol: str = None) -> None:
         """
@@ -287,7 +257,7 @@ class ChartSession:
     
     def fetch_more(self, number: int = 1) -> None:
         """Fetch more historical data"""
-        self.client.send('request_more_data', [self.chart_session_id, number])
+        self.client.send('request_more_data', [self.chart_session_id, '$prices', number])
     
     # Event handlers
     def on_symbol_loaded(self, callback: Callable[[], None]) -> None:
